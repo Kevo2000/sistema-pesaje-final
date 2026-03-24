@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Sistema de Pesaje Pro - Multilote Final</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2d5a27">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+
+    <script>
+      // Registro del Service Worker para funcionamiento offline
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('PWA lista'))
+            .catch(err => console.log('Error en PWA', err));
+        });
+      }
+    </script>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f0f2f0; padding: 20px; margin: 0; }
+        .header-app { background: #2d5a27; color: white; padding: 15px; border-radius: 10px 10px 0 0; display: flex; flex-direction: column; align-items: center; }
+        .header-app input { background: #f9f9f9; border: 2px solid #1e3d1a; color: #000; font-size: 1.2em; font-weight: bold; padding: 10px; width: 95%; border-radius: 5px; box-sizing: border-box; text-align: center; }
+        .reloj-header { font-size: 0.9em; margin-top: 8px; font-weight: bold; }
+        
+        .container { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 15px; background: #c2e0b3; padding: 20px; border-radius: 0 0 10px 10px; border: 1px solid #a3c991; }
+        .column { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); min-height: 450px; }
+        
+        h3 { margin-top: 0; color: #2d5a27; border-bottom: 2px solid #8dbd71; padding-bottom: 5px; text-transform: uppercase; font-size: 0.9em; margin-bottom: 15px; }
+        label { display: block; font-size: 0.75em; font-weight: bold; margin-bottom: 2px; color: #444; text-transform: uppercase; }
+        input { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 0.9em; }
+        
+        button { width: 100%; padding: 10px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-bottom: 5px; min-height: 44px; /* Mejora Táctil */ }
+        .btn-cerrar { background-color: #607d8b; }
+        .btn-pdf { background-color: #e53935; margin-top: 10px; }
+        .btn-limpiar { background-color: #333; margin-top: 20px; }
+
+        /* Estilos de Resumen Originales */
+        .resumen-item { display: flex; justify-content: space-between; padding: 8px 0; font-size: 0.95em; border-bottom: 2px solid #eee; margin-bottom: 5px; color: #333; }
+        .resumen-item b { font-size: 1.1em; }
+        .caja-amarilla-resumen { background: #ffff00; border: 3px solid #000; padding: 12px; display: flex; justify-content: space-between; align-items: center; font-weight: 900; margin-bottom: 10px; border-radius: 4px; font-size: 1.05em; color: #000; }
+        .liq-box-blue { border: 2px solid #2196f3; background: #e3f2fd; padding: 12px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; margin-top: 10px; }
+        .liq-box-yellow { border: 3px solid #000; background: #ffff00; padding: 12px; display: flex; justify-content: space-between; align-items: center; font-weight: 900; margin-top: 8px; font-size: 1.1em; }
+
+        /* Historial y Botones de Edición */
+        .tabla-historial { width: 100%; border-collapse: collapse; font-size: 0.85em; margin-top: 10px; background: white; }
+        .tabla-historial th { background: #fdfdfd; border-bottom: 2px solid #8dbd71; padding: 12px; text-align: left; color: #2d5a27; }
+        .tabla-historial td { border-bottom: 1px solid #eee; padding: 12px; vertical-align: middle; } 
+        
+        .btn-x-red { background: #ff0000; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+        .btn-edit-pen { background: none; border: none; color: #2196f3; cursor: pointer; font-size: 1.1em; margin-right: 5px; padding: 2px; }
+        .separador-grupo { background-color: #333 !important; color: white !important; font-weight: bold; padding: 10px !important; }
+        .btn-reabrir-mini { background: #ff9800; color: white; border: none; padding: 4px 10px; font-size: 0.75em; border-radius: 3px; cursor: pointer; margin-left: 15px; text-transform: uppercase; }
+        .modo-edicion-aviso { background: #fff3e0; border: 1px solid #ffe0b2; padding: 8px; border-radius: 5px; margin-bottom: 10px; font-size: 0.85em; color: #e65100; font-weight: bold; text-align: center; }
+
+        /* Pestañas (Multi-lote) */
+        .tab-bar { display: flex; background: #1e3d1a; padding: 10px 20px 0; gap: 5px; overflow-x: auto; }
+        .tab-btn { background: #458a3d; color: white; border: none; padding: 10px 15px; border-radius: 5px 5px 0 0; cursor: pointer; font-weight: bold; font-size: 0.9em; width: auto; margin-bottom: 0; min-height: 44px; display: flex; align-items: center; justify-content: center; box-sizing: border-box; /* Mejora Táctil */ }
+        .tab-btn.active { background: #c2e0b3; color: #2d5a27; }
+        .tab-add { background: #2196f3; color: white; }
+        .tab-resumen { background: #ff9800; color: white; margin-left: auto; }
+
+        /* Resumen Final Multi-Lote */
+        .resumen-tabla { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; font-size: 0.9em; }
+        .resumen-tabla th { background: #2d5a27; color: white; padding: 12px; border: 1px solid #1e3d1a;}
+        .resumen-tabla td { border: 1px solid #ccc; padding: 10px; text-align: center; }
+        .caja-resumen-final { background: #fff; padding: 15px; border-radius: 8px; border: 3px solid #ff9800; text-align: center; margin-bottom: 10px; }
+        .caja-resumen-final span { font-size: 1.5em; font-weight: 900; display: block; color: #333; margin-top: 5px;}
+        .grid-resumen-final { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-bottom: 20px;}
+
+        /* Estilos Modal Custom */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-box { background: white; padding: 20px; border-radius: 8px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .modal-box p { font-size: 1.1em; margin-bottom: 15px; color: #333; font-weight: bold; }
+        .modal-box input { margin-bottom: 15px; width: 100%; font-size: 1.1em; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .modal-buttons { display: flex; gap: 10px; justify-content: center; }
+        .modal-buttons button { margin: 0; width: 50%; min-height: 44px; }
+        .modal-btn-cancel { background: #e53935; }
+        .modal-btn-ok { background: #4CAF50; }
+
+        @media print { 
+            .tab-bar, .btn-x-red, .btn-edit-pen, .btn-reabrir-mini, .btn-limpiar, .btn-pdf, .column:first-child, .modo-edicion-aviso, #seccionHistorialSesiones, .btn-historial-backup, .modal-overlay { display: none !important; } 
+            body { padding: 0; background: white; }
+            .container { grid-template-columns: 1fr 1fr; background: none; border: none; }
+            .column { box-shadow: none; border: 1px solid #ccc; min-height: auto; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header-app">
+    <input type="text" id="docTitle" placeholder="NOMBRE DEL DOCUMENTO / CLIENTE..." oninput="guardarActual()">
+    <div class="reloj-header" id="reloj">Cargando...</div>
+</div>
+
+<div id="tabBar" class="tab-bar"></div>
+
+<div id="vistaPrincipal">
+    <div class="container">
+        <div class="column">
+            <h3>REGISTRO</h3>
+            
+            <div id="avisoEdicion" class="modo-edicion-aviso" style="display:none;">⚠️ EDITANDO GRUPO <span id="numEdicion"></span></div>
+            
+            <label>JABAS POR DEFECTO:</label>
+            <input type="number" id="jabasDefecto" value="5" onfocus="this.select()" oninput="guardarActual()" inputmode="numeric">
+
+            <label>DESCRIPCIÓN (N° JABAS):</label>
+            <input type="text" id="inputDesc" placeholder="Vacío = usa jabas por defecto" onfocus="this.select()" oninput="guardarActual()">
+            
+            <label>PESO (kg):</label>
+            <input type="number" id="inputPeso" placeholder="0.00" step="0.01" onfocus="this.select()" oninput="guardarActual()" inputmode="decimal">
+            
+            <button onclick="agregarPeso()">AGREGAR DATO (Enter)</button>
+            <button class="btn-cerrar" id="btnCerrarGrupo" onclick="manejarCierreGrupo()">ARCHIVAR / NUEVO GRUPO</button>
+            <p style="font-size: 0.8em; font-weight: bold;">JABAS: <span id="contador">0</span>/10</p>
+            <button class="btn-pdf" onclick="window.print()">🖨️ IMPRIMIR / PDF</button>
+        </div>
+
+        <div class="column">
+            <h3>RESUMEN PESOS</h3>
+            <div id="listaPesosDetalle" style="margin-bottom: 15px;"></div>
+            
+            <div class="caja-amarilla-resumen"><span>PB (Peso Bruto):</span><span id="pb">0.00</span></div>
+            <div class="caja-amarilla-resumen"><span>TARA TOTAL:</span><span id="taraTotalDisplay">0.00</span></div>
+            <div class="caja-amarilla-resumen"><span>PN (Peso Neto):</span><span id="pn">0.00</span></div>
+        </div>
+
+        <div class="column">
+            <h3>LIQUIDACIÓN</h3>
+            <label>JABAS BRUTAS:</label>
+            <input type="number" id="manualJabas" value="0" readonly style="background-color: #e9e9e9; border: 1.5px solid #000; font-weight: bold;">
+            
+            <label>TARA:</label><input type="number" id="manualTara" value="1.8" step="0.1" oninput="calcularTodo()" inputmode="decimal">
+            <label>DIVISOR:</label><input type="number" id="divisorJaba" value="20" oninput="calcularTodo()" inputmode="numeric">
+            <label>S/ * KILO:</label><input type="number" id="precioKilo" value="0.00" step="0.01" oninput="calcularTodo()" inputmode="decimal">
+            
+            <label>S/ * JABA:</label>
+            <input type="number" id="precioJabaInfo" value="0.00" readonly style="background-color: #e9e9e9; border: 1.5px solid #000; font-weight: bold;">
+            
+            <div class="liq-box-blue"><span>JABAS NETAS:</span><span id="jabasNetas">0.00</span></div>
+            <div class="liq-box-yellow"><span>PAGO TOTAL:</span><span id="pagoFinal">S/ 0.00</span></div>
+        </div>
+    </div>
+    
+    <div class="column" style="margin-top:20px; width: 100%; box-sizing: border-box; min-height: auto;">
+        <h3>HISTORIAL DE PESOS</h3>
+        <table class="tabla-historial">
+            <thead>
+                <tr><th style="width: 50px;">N°</th><th>DETALLE / JABAS</th><th style="width: 150px;">PESO (kg)</th><th style="width: 60px; text-align: center;">X</th></tr>
+            </thead>
+            <tbody id="cuerpoHistorial"></tbody>
+        </table>
+    </div>
+</div>
+
+<div id="vistaResumen" style="display:none; padding:20px;">
+    <div class="grid-resumen-final">
+        <div class="caja-resumen-final">PESO BRUTO TOTAL<span id="resGlobalPB">0.00</span></div>
+        <div class="caja-resumen-final">JABAS BRUTAS TOTALES<span id="resGlobalJabas">0</span></div>
+        <div class="caja-resumen-final">TARA TOTAL<span id="resGlobalTara">0.00</span></div>
+        <div class="caja-resumen-final">PESO NETO TOTAL<span id="resGlobalPN">0.00</span></div>
+        <div class="caja-resumen-final">JABAS NETAS TOTALES<span id="resGlobalJabasNetas">0.00</span></div>
+        <div class="caja-resumen-final" style="border-color:#2d5a27; background:#e8f5e9;">PAGO TOTAL<span id="resGlobalPago" style="color:#2d5a27;">S/ 0.00</span></div>
+    </div>
+    
+    <table class="resumen-tabla">
+        <thead>
+            <tr>
+                <th>LOTE</th>
+                <th>CLIENTE</th>
+                <th>P. BRUTO</th>
+                <th>J. BRUTAS</th>
+                <th>TARA TOTAL</th>
+                <th>P. NETO</th>
+                <th>J. NETAS</th>
+                <th>PAGOS INDIVIDUALES</th>
+            </tr>
+        </thead>
+        <tbody id="resumenBody"></tbody>
+    </table>
+
+    <div style="margin-top:20px; display:flex; gap:10px;">
+        <button class="btn-pdf" style="flex:1;" onclick="window.print()">🖨️ IMPRIMIR RESUMEN FINAL / PDF</button>
+        <button class="btn-limpiar" style="flex:1;" onclick="limpiarTodoCompleto()">🗑️ BORRAR TODO E INICIAR NUEVO PESAJE</button>
+    </div>
+
+    <div class="btn-historial-backup" style="margin-top:10px; display:flex; gap:10px;">
+        <button style="flex:1; background-color: #0288d1; color: white;" onclick="exportarBackup()">💾 EXPORTAR BACKUP (JSON)</button>
+        <button style="flex:1; background-color: #00796b; color: white;" onclick="document.getElementById('fileImport').click()">📂 IMPORTAR BACKUP</button>
+        <input type="file" id="fileImport" style="display:none;" accept=".json" onchange="importarBackup(event)">
+    </div>
+    
+    <div class="btn-historial-backup" style="margin-top:10px; display:flex; gap:10px;">
+        <button style="flex:1; background-color: #f57c00; color: white;" onclick="guardarSesion()">📁 GUARDAR ESTE PESAJE EN EL HISTORIAL Y LIMPIAR</button>
+    </div>
+
+    <div id="seccionHistorialSesiones" style="margin-top:40px;">
+        <h3>HISTORIAL DE SESIONES PASADAS</h3>
+        <table class="resumen-tabla">
+            <thead>
+                <tr>
+                    <th>FECHA / HORA</th>
+                    <th>LOTES ACTIVOS</th>
+                    <th>P. BRUTO GLOBAL</th>
+                    <th>P. NETO GLOBAL</th>
+                    <th>PAGO TOTAL GLOBAL</th>
+                </tr>
+            </thead>
+            <tbody id="historialSesionesBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<div id="customModalOverlay" class="modal-overlay">
+    <div class="modal-box">
+        <p id="customModalTitle"></p>
+        <input type="text" id="customModalInput" autocomplete="off">
+        <div class="modal-buttons">
+            <button id="customModalCancel" class="modal-btn-cancel">CANCELAR</button>
+            <button id="customModalOk" class="modal-btn-ok">ACEPTAR</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let lotes = [];
+    let loteActivoId = 0;
+    let isResumen = false;
+
+    // Variables de trabajo del lote activo
+    let grupos = [[]];
+    let indiceEdicion = 0;
+
+    // Funciones del Modal Custom Asíncrono
+    function showModal(type, msg, defValue = '') {
+        return new Promise(resolve => {
+            const overlay = document.getElementById('customModalOverlay');
+            const box = document.getElementById('customModalBox');
+            const title = document.getElementById('customModalTitle');
+            const input = document.getElementById('customModalInput');
+            const btnCancel = document.getElementById('customModalCancel');
+            const btnOk = document.getElementById('customModalOk');
+
+            title.innerText = msg;
+            input.style.display = type === 'prompt' ? 'block' : 'none';
+            if(type === 'prompt') {
+                input.value = defValue;
+            }
+            btnCancel.style.display = (type === 'confirm' || type === 'prompt') ? 'inline-block' : 'none';
+
+            overlay.style.display = 'flex';
+
+            if(type === 'prompt') input.focus();
+
+            const cleanup = () => {
+                overlay.style.display = 'none';
+                btnOk.onclick = null;
+                btnCancel.onclick = null;
+                input.onkeypress = null;
+            };
+
+            btnOk.onclick = () => {
+                cleanup();
+                if(type === 'prompt') resolve(input.value);
+                else resolve(true);
+            };
+
+            btnCancel.onclick = () => {
+                cleanup();
+                resolve(type === 'prompt' ? null : false);
+            };
+
+            input.onkeypress = (e) => {
+                if(e.key === 'Enter') btnOk.onclick();
+            };
+        });
+    }
+    
+    async function customAlert(msg) { await showModal('alert', msg); }
+    async function customConfirm(msg) { return await showModal('confirm', msg); }
+    async function customPrompt(msg, defVal) { return await showModal('prompt', msg, defVal); }
+
+    function crearLoteNuevo() {
+        return {
+            docTitle: "", grupos: [[]], indiceEdicion: 0,
+            manualTara: 1.8, precioKilo: 0.00, divisorJaba: 20, jabasDefecto: 5
+        };
+    }
+
+    window.onload = function() {
+        try {
+            const saved = JSON.parse(localStorage.getItem('pesaje_multi_kevo_v3'));
+            lotes = saved || [crearLoteNuevo()];
+        } catch(e) { 
+            lotes = [crearLoteNuevo()];
+        }
+        renderTabs();
+        cargarLote(0);
+        setInterval(actualizarReloj, 1000);
+    };
+
+    function actualizarReloj() {
+        const n = new Date();
+        document.getElementById('reloj').innerText = `FECHA: ${n.toLocaleDateString()} | HORA: ${n.toLocaleTimeString()}`;
+    }
+
+    document.getElementById('inputDesc').addEventListener('keypress', (e) => { if(e.key === 'Enter') { e.preventDefault(); agregarPeso(); } });
+    document.getElementById('inputPeso').addEventListener('keypress', (e) => { if(e.key === 'Enter') { e.preventDefault(); agregarPeso(); } });
+
+    function renderTabs() {
+        const bar = document.getElementById('tabBar');
+        let html = '';
+        lotes.forEach((l, i) => {
+            html += `<button class="tab-btn ${(!isResumen && loteActivoId === i) ? 'active' : ''}" onclick="switchLote(${i})">Lote ${i+1}</button>`;
+        });
+        if(lotes.length < 10) html += `<button class="tab-btn tab-add" onclick="agregarLote()">+ Añadir Lote</button>`;
+        html += `<button class="tab-btn tab-resumen ${(isResumen) ? 'active' : ''}" onclick="switchLote('resumen')">📊 Resumen Final</button>`;
+        bar.innerHTML = html;
+    }
+
+    function agregarLote() {
+        if(lotes.length >= 10) return;
+        guardarActual();
+        lotes.push(crearLoteNuevo());
+        switchLote(lotes.length - 1);
+    }
+
+    function switchLote(index) {
+        if(!isResumen) guardarActual();
+        if(index === 'resumen') {
+            isResumen = true;
+            document.getElementById('vistaPrincipal').style.display = 'none';
+            document.getElementById('vistaResumen').style.display = 'block';
+            document.getElementById('docTitle').style.display = 'none'; 
+            generarResumenGlobal();
+            cargarHistorialSesiones();
+        } else {
+            isResumen = false;
+            loteActivoId = index;
+            document.getElementById('vistaPrincipal').style.display = 'block';
+            document.getElementById('vistaResumen').style.display = 'none';
+            document.getElementById('docTitle').style.display = 'block'; 
+            cargarLote(index);
+        }
+        renderTabs();
+    }
+
+    function cargarLote(idx) {
+        const l = lotes[idx];
+        grupos = JSON.parse(JSON.stringify(l.grupos));
+        indiceEdicion = l.indiceEdicion;
+        document.getElementById('docTitle').value = l.docTitle;
+        document.getElementById('manualTara').value = l.manualTara;
+        document.getElementById('divisorJaba').value = l.divisorJaba;
+        document.getElementById('precioKilo').value = l.precioKilo;
+        document.getElementById('jabasDefecto').value = l.jabasDefecto !== undefined ? l.jabasDefecto : 5;
+        renderizar();
+    }
+
+    function guardarActual() {
+        if(isResumen) return;
+        lotes[loteActivoId] = {
+            docTitle: document.getElementById('docTitle').value,
+            grupos: JSON.parse(JSON.stringify(grupos)),
+            indiceEdicion: indiceEdicion,
+            manualTara: document.getElementById('manualTara').value,
+            divisorJaba: document.getElementById('divisorJaba').value,
+            precioKilo: document.getElementById('precioKilo').value,
+            jabasDefecto: document.getElementById('jabasDefecto').value
+        };
+        localStorage.setItem('pesaje_multi_kevo_v3', JSON.stringify(lotes));
+    }
+
+    function agregarPeso() {
+        const pInput = document.getElementById('inputPeso');
+        const dInput = document.getElementById('inputDesc');
+        const p = parseFloat(pInput.value);
+
+        if (isNaN(p)) return;
+
+        let defJabas = document.getElementById('jabasDefecto').value || "5";
+        let d = dInput.value.trim();
+        
+        if (d === "") {
+            d = defJabas + " jabas";
+        } else if (!isNaN(d)) {
+            d = d + " jabas";
+        }
+
+        grupos[indiceEdicion].push({ desc: d, valor: p });
+        
+        // Limpiamos los campos
+        pInput.value = ""; 
+        dInput.value = ""; 
+        
+        // ¡Aquí está la magia! El cursor vuelve automáticamente a la casilla de peso
+        pInput.focus();
+
+        if (grupos[indiceEdicion].length >= 10) {
+            if (indiceEdicion < grupos.length - 1) {
+                indiceEdicion = grupos.length - 1; 
+                if (grupos[indiceEdicion].length >= 10) manejarCierreGrupo();
+            } else {
+                manejarCierreGrupo();
+            }
+        }
+        renderizar();
+        guardarActual();
+    }
+
+    function manejarCierreGrupo() {
+        if (indiceEdicion < grupos.length - 1) {
+            indiceEdicion = grupos.length - 1;
+        } else if (grupos[indiceEdicion].length > 0) {
+            grupos.push([]);
+            indiceEdicion = grupos.length - 1;
+        }
+        renderizar();
+        guardarActual();
+    }
+
+    async function activarEdicionGrupo(idx) {
+        if(grupos[idx].length < 10) { 
+            indiceEdicion = idx; 
+            renderizar();
+            document.getElementById('inputPeso').focus();
+            guardarActual();
+        } else {
+            await customAlert("Este grupo ya tiene los 10 items permitidos.");
+        }
+    }
+
+    async function editarFila(gIdx, iIdx, tipo) {
+        let actual = tipo === 'val' ? grupos[gIdx][iIdx].valor : grupos[gIdx][iIdx].desc;
+        let nuevo = await customPrompt("Editar dato:", actual);
+        if (nuevo !== null && nuevo !== "") {
+            if (tipo === 'val') grupos[gIdx][iIdx].valor = parseFloat(nuevo) || 0;
+            else grupos[gIdx][iIdx].desc = nuevo;
+            renderizar();
+            guardarActual();
+        }
+    }
+
+    async function borrarFila(gIdx, iIdx) { 
+        if (await customConfirm("¿Eliminar?")) { 
+            grupos[gIdx].splice(iIdx, 1); 
+            renderizar(); 
+            guardarActual();
+        } 
+    }
+
+    function renderizar() {
+        const tbody = document.getElementById('cuerpoHistorial');
+        tbody.innerHTML = '';
+        let globalN = 1;
+
+        grupos.forEach((g, gIdx) => {
+            let sumaG = 0;
+            g.forEach((item, iIdx) => {
+                sumaG += item.valor;
+                tbody.innerHTML += `
+                    <tr>
+                        <td style="color:#999;">${globalN++}</td>
+                        <td><button class="btn-edit-pen" onclick="editarFila(${gIdx}, ${iIdx}, 'desc')">✏️</button> ${item.desc}</td>
+                        <td style="font-weight:bold;"><button class="btn-edit-pen" onclick="editarFila(${gIdx}, ${iIdx}, 'val')">✏️</button> ${item.valor.toFixed(2)}</td>
+                        <td style="text-align:center;"><button class="btn-x-red" onclick="borrarFila(${gIdx}, ${iIdx})">X</button></td>
+                    </tr>`;
+            });
+
+            if (sumaG > 0 || gIdx < grupos.length - 1) {
+                const esActivo = (indiceEdicion === gIdx);
+                tbody.innerHTML += `
+                    <tr>
+                        <td colspan="4" class="separador-grupo">
+                            GRUPO ${gIdx + 1} - SUBTOTAL: ${sumaG.toFixed(2)}
+                            ${esActivo ? ' <small>(EDITANDO)</small>' : `<button class="btn-reabrir-mini" onclick="activarEdicionGrupo(${gIdx})">🔓 Reabrir</button>`}
+                        </td>
+                    </tr>`;
+            }
+        });
+
+        const aviso = document.getElementById('avisoEdicion');
+        const btnCerrar = document.getElementById('btnCerrarGrupo');
+        if (indiceEdicion < grupos.length - 1) {
+            aviso.style.display = 'block';
+            document.getElementById('numEdicion').innerText = indiceEdicion + 1;
+            btnCerrar.innerText = "TERMINAR EDICIÓN";
+        } else {
+            aviso.style.display = 'none';
+            btnCerrar.innerText = "ARCHIVAR / NUEVO GRUPO";
+        }
+
+        document.getElementById('contador').innerText = grupos[indiceEdicion].length;
+        calcularTodo();
+    }
+
+    function calcularTodo() {
+        let totalP = 0, totalJ = 0, pesosHTML = "";
+        grupos.forEach((g, idx) => {
+            let sG = 0;
+            g.forEach(i => { sG += i.valor; let m = i.desc.match(/\d+/); totalJ += m ? parseFloat(m[0]) : 5; });
+            totalP += sG;
+            if(sG > 0) pesosHTML += `<div class="resumen-item"><span>Peso ${idx+1}</span> <b>${sG.toFixed(2)}</b></div>`;
+        });
+        document.getElementById('listaPesosDetalle').innerHTML = pesosHTML;
+        document.getElementById('pb').innerText = totalP.toFixed(2);
+        document.getElementById('manualJabas').value = totalJ;
+        
+        const taraTotal = totalJ * parseFloat(document.getElementById('manualTara').value || 0);
+        const pn = totalP - taraTotal;
+        const precioK = parseFloat(document.getElementById('precioKilo').value || 0);
+        
+        document.getElementById('taraTotalDisplay').innerText = taraTotal.toFixed(2);
+        document.getElementById('pn').innerText = pn.toFixed(2);
+        document.getElementById('jabasNetas').innerText = (pn / parseFloat(document.getElementById('divisorJaba').value || 20)).toFixed(2);
+        
+        // Aquí se automatiza el S/ * JABA (Info) multiplicando S/ * KILO por 20
+        document.getElementById('precioJabaInfo').value = (precioK * 20).toFixed(2);
+        
+        document.getElementById('pagoFinal').innerText = "S/ " + (pn * precioK).toLocaleString('en-US', {minimumFractionDigits: 2});
+    }
+
+    function generarResumenGlobal() {
+        let gPB = 0, gJB = 0, gTara = 0, gPN = 0, gPago = 0, gJN = 0;
+        let html = '';
+        lotes.forEach((l, idx) => {
+            let lPB = 0, lJB = 0;
+            l.grupos.forEach(g => {
+                g.forEach(it => { 
+                    lPB += it.valor; 
+                    let m = it.desc.match(/\d+/); 
+                    lJB += m ? parseFloat(m[0]) : 5; 
+                });
+            });
+            let lTaraTotal = lJB * parseFloat(l.manualTara || 0);
+            let lPN = lPB - lTaraTotal;
+            let lJN = lPN / parseFloat(l.divisorJaba || 20);
+            let lPago = lPN * parseFloat(l.precioKilo || 0);
+
+            if(lPB > 0) {
+                gPB += lPB; gJB += lJB; gTara += lTaraTotal; gPN += lPN; gPago += lPago; gJN += lJN; 
+                html += `<tr>
+                    <td><b>LOTE ${idx+1}</b></td>
+                    <td>${l.docTitle || '---'}</td>
+                    <td>${lPB.toFixed(2)}</td>
+                    <td>${lJB}</td>
+                    <td>${lTaraTotal.toFixed(2)}</td>
+                    <td>${lPN.toFixed(2)}</td>
+                    <td>${lJN.toFixed(2)}</td>
+                    <td><b>S/ ${lPago.toLocaleString('en-US',{minimumFractionDigits:2})}</b></td>
+                </tr>`;
+            }
+        });
+        document.getElementById('resumenBody').innerHTML = html;
+        document.getElementById('resGlobalPB').innerText = gPB.toFixed(2);
+        document.getElementById('resGlobalJabas').innerText = gJB;
+        document.getElementById('resGlobalTara').innerText = gTara.toFixed(2);
+        document.getElementById('resGlobalPN').innerText = gPN.toFixed(2);
+        document.getElementById('resGlobalJabasNetas').innerText = gJN.toFixed(2); 
+        document.getElementById('resGlobalPago').innerText = "S/ " + gPago.toLocaleString('en-US', {minimumFractionDigits:2});
+    }
+
+    async function limpiarTodoCompleto() {
+        if(await customConfirm("¿Seguro que quieres borrar los 10 lotes y reiniciar todo el sistema? (Esto NO se guarda en el historial)")) {
+            localStorage.removeItem('pesaje_multi_kevo_v3');
+            location.reload();
+        }
+    }
+
+    // BACKUPS MANUALES
+    async function exportarBackup() {
+        const data = localStorage.getItem('pesaje_multi_kevo_v3');
+        if(!data) { await customAlert("No hay datos actuales para exportar."); return; }
+        const blob = new Blob([data], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Backup_Pesaje_${new Date().toLocaleDateString().replace(/\//g,'-')}.json`;
+        a.click();
+    }
+
+    function importarBackup(event) {
+        const file = event.target.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            try {
+                const data = JSON.parse(e.target.result);
+                if(Array.isArray(data)) {
+                    localStorage.setItem('pesaje_multi_kevo_v3', JSON.stringify(data));
+                    await customAlert("Backup cargado con éxito.");
+                    location.reload();
+                } else {
+                    await customAlert("El archivo JSON no tiene el formato correcto de lotes.");
+                }
+            } catch(err) {
+                await customAlert("Error al leer el archivo. Asegúrate de que sea el backup original.");
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    // HISTORIAL DE SESIONES PASADAS
+    function cargarHistorialSesiones() {
+        let historial = JSON.parse(localStorage.getItem('historial_sesiones_kevo')) || [];
+        let html = '';
+        historial.forEach(h => {
+            html += `<tr>
+                <td>${h.fecha}</td>
+                <td>${h.lotesActivos}</td>
+                <td>${h.pesoBruto.toFixed(2)} kg</td>
+                <td>${h.pesoNeto.toFixed(2)} kg</td>
+                <td><b>S/ ${h.pagoTotal.toLocaleString('en-US', {minimumFractionDigits:2})}</b></td>
+            </tr>`;
+        });
+        const tbody = document.getElementById('historialSesionesBody');
+        if(tbody) {
+            tbody.innerHTML = html.length > 0 ? html : `<tr><td colspan="5">No hay historial de sesiones pasadas guardado.</td></tr>`;
+        }
+    }
+
+    async function guardarSesion() {
+        if(await customConfirm("¿Estás seguro de GUARDAR esta sesión en el historial y REINICIAR el pesaje actual para empezar de cero?")) {
+            let gPB = 0, gPN = 0, gPago = 0, numLotesActivos = 0;
+            lotes.forEach(l => {
+                let lPB = 0, lJB = 0;
+                l.grupos.forEach(g => {
+                    g.forEach(it => { lPB += it.valor; let m = it.desc.match(/\d+/); lJB += m ? parseFloat(m[0]) : 5; });
+                });
+                if(lPB > 0) {
+                    numLotesActivos++;
+                    let lTara = lJB * parseFloat(l.manualTara || 0);
+                    let lPN = lPB - lTara;
+                    gPB += lPB;
+                    gPN += lPN;
+                    gPago += lPN * parseFloat(l.precioKilo || 0);
+                }
+            });
+
+            if(numLotesActivos > 0) {
+                let historial = JSON.parse(localStorage.getItem('historial_sesiones_kevo')) || [];
+                historial.unshift({
+                    fecha: new Date().toLocaleString(),
+                    lotesActivos: numLotesActivos,
+                    pesoBruto: gPB,
+                    pesoNeto: gPN,
+                    pagoTotal: gPago
+                });
+                localStorage.setItem('historial_sesiones_kevo', JSON.stringify(historial));
+            }
+            
+            localStorage.removeItem('pesaje_multi_kevo_v3');
+            location.reload();
+        }
+    }
+</script>
+</body>
+</html>
