@@ -1,6 +1,6 @@
 const CACHE_NAME = 'pesaje-kevo-v1';
 const urlsToCache = [
-  './CalcMangKevo.html',
+  './index.html',  // <-- ¡AQUÍ ESTABA EL ERROR! 
   './manifest.json',
   './icono-192x192.png',
   './icono-512x512.png'
