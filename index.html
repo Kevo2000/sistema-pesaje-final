@@ -2,96 +2,192 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Sistema de Pesaje Pro - Multilote Final</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Pesaje Pro - Mobile Edition</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2d5a27">
     <meta name="apple-mobile-web-app-capable" content="yes">
 
-    <script>
-      // Registro del Service Worker para funcionamiento offline
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('PWA lista'))
-            .catch(err => console.log('Error en PWA', err));
-        });
-      }
-    </script>
     <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f0f2f0; padding: 20px; margin: 0; }
-        .header-app { background: #2d5a27; color: white; padding: 15px; border-radius: 10px 10px 0 0; display: flex; flex-direction: column; align-items: center; }
-        .header-app input { background: #f9f9f9; border: 2px solid #1e3d1a; color: #000; font-size: 1.2em; font-weight: bold; padding: 10px; width: 95%; border-radius: 5px; box-sizing: border-box; text-align: center; }
-        .reloj-header { font-size: 0.9em; margin-top: 8px; font-weight: bold; }
-        
-        .container { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 15px; background: #c2e0b3; padding: 20px; border-radius: 0 0 10px 10px; border: 1px solid #a3c991; }
-        .column { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); min-height: 450px; }
-        
-        h3 { margin-top: 0; color: #2d5a27; border-bottom: 2px solid #8dbd71; padding-bottom: 5px; text-transform: uppercase; font-size: 0.9em; margin-bottom: 15px; }
-        label { display: block; font-size: 0.75em; font-weight: bold; margin-bottom: 2px; color: #444; text-transform: uppercase; }
-        input { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 0.9em; }
-        
-        button { width: 100%; padding: 10px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-bottom: 5px; min-height: 44px; /* Mejora Táctil */ }
-        .btn-cerrar { background-color: #607d8b; }
-        .btn-pdf { background-color: #e53935; margin-top: 10px; }
-        .btn-limpiar { background-color: #333; margin-top: 20px; }
-
-        /* Estilos de Resumen Originales */
-        .resumen-item { display: flex; justify-content: space-between; padding: 8px 0; font-size: 0.95em; border-bottom: 2px solid #eee; margin-bottom: 5px; color: #333; }
-        .resumen-item b { font-size: 1.1em; }
-        .caja-amarilla-resumen { background: #ffff00; border: 3px solid #000; padding: 12px; display: flex; justify-content: space-between; align-items: center; font-weight: 900; margin-bottom: 10px; border-radius: 4px; font-size: 1.05em; color: #000; }
-        .liq-box-blue { border: 2px solid #2196f3; background: #e3f2fd; padding: 12px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; margin-top: 10px; }
-        .liq-box-yellow { border: 3px solid #000; background: #ffff00; padding: 12px; display: flex; justify-content: space-between; align-items: center; font-weight: 900; margin-top: 8px; font-size: 1.1em; }
-
-        /* Historial y Botones de Edición */
-        .tabla-historial { width: 100%; border-collapse: collapse; font-size: 0.85em; margin-top: 10px; background: white; }
-        .tabla-historial th { background: #fdfdfd; border-bottom: 2px solid #8dbd71; padding: 12px; text-align: left; color: #2d5a27; }
-        .tabla-historial td { border-bottom: 1px solid #eee; padding: 12px; vertical-align: middle; } 
-        
-        .btn-x-red { background: #ff0000; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-weight: bold; cursor: pointer; }
-        .btn-edit-pen { background: none; border: none; color: #2196f3; cursor: pointer; font-size: 1.1em; margin-right: 5px; padding: 2px; }
-        .separador-grupo { background-color: #333 !important; color: white !important; font-weight: bold; padding: 10px !important; }
-        .btn-reabrir-mini { background: #ff9800; color: white; border: none; padding: 4px 10px; font-size: 0.75em; border-radius: 3px; cursor: pointer; margin-left: 15px; text-transform: uppercase; }
-        .modo-edicion-aviso { background: #fff3e0; border: 1px solid #ffe0b2; padding: 8px; border-radius: 5px; margin-bottom: 10px; font-size: 0.85em; color: #e65100; font-weight: bold; text-align: center; }
-
-        /* Pestañas (Multi-lote) */
-        .tab-bar { display: flex; background: #1e3d1a; padding: 10px 20px 0; gap: 5px; overflow-x: auto; }
-        .tab-btn { background: #458a3d; color: white; border: none; padding: 10px 15px; border-radius: 5px 5px 0 0; cursor: pointer; font-weight: bold; font-size: 0.9em; width: auto; margin-bottom: 0; min-height: 44px; display: flex; align-items: center; justify-content: center; box-sizing: border-box; /* Mejora Táctil */ }
-        .tab-btn.active { background: #c2e0b3; color: #2d5a27; }
-        .tab-add { background: #2196f3; color: white; }
-        .tab-resumen { background: #ff9800; color: white; margin-left: auto; }
-
-        /* Resumen Final Multi-Lote */
-        .resumen-tabla { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; font-size: 0.9em; }
-        .resumen-tabla th { background: #2d5a27; color: white; padding: 12px; border: 1px solid #1e3d1a;}
-        .resumen-tabla td { border: 1px solid #ccc; padding: 10px; text-align: center; }
-        .caja-resumen-final { background: #fff; padding: 15px; border-radius: 8px; border: 3px solid #ff9800; text-align: center; margin-bottom: 10px; }
-        .caja-resumen-final span { font-size: 1.5em; font-weight: 900; display: block; color: #333; margin-top: 5px;}
-        .grid-resumen-final { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-bottom: 20px;}
-
-        /* Estilos Modal Custom */
-        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 1000; }
-        .modal-box { background: white; padding: 20px; border-radius: 8px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
-        .modal-box p { font-size: 1.1em; margin-bottom: 15px; color: #333; font-weight: bold; }
-        .modal-box input { margin-bottom: 15px; width: 100%; font-size: 1.1em; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        .modal-buttons { display: flex; gap: 10px; justify-content: center; }
-        .modal-buttons button { margin: 0; width: 50%; min-height: 44px; }
-        .modal-btn-cancel { background: #e53935; }
-        .modal-btn-ok { background: #4CAF50; }
-
-        @media print { 
-            .tab-bar, .btn-x-red, .btn-edit-pen, .btn-reabrir-mini, .btn-limpiar, .btn-pdf, .column:first-child, .modo-edicion-aviso, #seccionHistorialSesiones, .btn-historial-backup, .modal-overlay { display: none !important; } 
-            body { padding: 0; background: white; }
-            .container { grid-template-columns: 1fr 1fr; background: none; border: none; }
-            .column { box-shadow: none; border: 1px solid #ccc; min-height: auto; }
+        :root {
+            --primary-dark: #2d5a27;
+            --primary-light: #c2e0b3;
+            --accent-orange: #ff9800;
+            --bg-gray: #f4f7f4;
+            --white: #ffffff;
+            --shadow: 0 4px 12px rgba(0,0,0,0.08);
         }
+
+        body { 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            background-color: var(--bg-gray); 
+            margin: 0; 
+            color: #333;
+        }
+        
+        /* CABECERA REDISEÑADA PARA MÓVIL (INPUT ARRIBA, BOTÓN ABAJO) */
+        .header-app { 
+            background: var(--primary-dark); 
+            color: white; 
+            padding: 15px; 
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .session-title { 
+            font-size: 0.9em; 
+            text-transform: uppercase; 
+            font-weight: bold; 
+            color: var(--primary-light); 
+            margin-bottom: 10px;
+        }
+        
+        /* Flex column por defecto para móviles */
+        .header-input-row { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 10px; 
+            max-width: 600px; 
+            margin: 0 auto;
+        }
+        
+        .header-input-row input { 
+            width: 100%; 
+            padding: 12px; 
+            border-radius: 8px; 
+            border: none; 
+            font-size: 1em; 
+            font-weight: bold;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        
+        .btn-cambiar-sesion { 
+            width: 100%;
+            background: var(--accent-orange); 
+            color: white; 
+            border: none; 
+            padding: 12px 15px; 
+            border-radius: 8px; 
+            font-weight: bold; 
+            cursor: pointer;
+            font-size: 1em;
+        }
+
+        /* Si la pantalla es grande (PC/Tablet), se ponen uno al lado del otro */
+        @media (min-width: 600px) {
+            .header-input-row { flex-direction: row; }
+            .header-input-row input { flex: 1; }
+            .btn-cambiar-sesion { width: auto; }
+        }
+
+        /* NAVEGACIÓN TABS */
+        .tab-bar { 
+            display: flex; 
+            background: #1e3d1a; 
+            padding: 5px 10px 0; 
+            gap: 5px; 
+            overflow-x: auto; 
+            scrollbar-width: none;
+        }
+        .tab-bar::-webkit-scrollbar { display: none; }
+
+        .tab-btn { 
+            background: #458a3d; 
+            color: white; 
+            border: none; 
+            padding: 12px 20px; 
+            border-radius: 8px 8px 0 0; 
+            white-space: nowrap;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        .tab-btn.active { background: var(--bg-gray); color: var(--primary-dark); }
+        .tab-add { background: #2196f3; }
+        .tab-resumen { background: var(--accent-orange); margin-left: auto; }
+
+        /* CONTENEDOR PRINCIPAL RESPONSIVO */
+        .container { 
+            display: grid; 
+            grid-template-columns: 1fr; 
+            gap: 20px; 
+            padding: 15px; 
+            max-width: 1200px; 
+            margin: 0 auto;
+        }
+
+        @media (min-width: 900px) {
+            .container { grid-template-columns: 1fr 1fr 1.2fr; }
+        }
+
+        .column { 
+            background: var(--white); 
+            padding: 20px; 
+            border-radius: 12px; 
+            box-shadow: var(--shadow);
+        }
+        
+        h3 { margin-top: 0; color: var(--primary-dark); border-bottom: 2px solid var(--primary-light); padding-bottom: 8px; font-size: 1.1em; margin-bottom: 15px; }
+
+        /* INPUTS Y BOTONES */
+        label { display: block; font-size: 0.75em; font-weight: 700; margin-bottom: 4px; color: #666; }
+        input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 1em; background: #fafafa; }
+        
+        button { width: 100%; padding: 14px; background-color: #4CAF50; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 1em; margin-bottom: 8px; cursor: pointer; }
+        .btn-cerrar { background-color: #607d8b; }
+        .btn-pdf { background-color: #e53935; }
+        .btn-limpiar { background-color: #333; }
+        
+        /* HISTORIAL BOTONES MINI */
+        .btn-x-red { background: #ff0000; color: white; border: none; padding: 6px 10px; border-radius: 4px; font-weight: bold; cursor: pointer; width: auto; margin:0;}
+        .btn-edit-pen { background: none; border: none; color: #2196f3; cursor: pointer; font-size: 1.2em; margin-right: 5px; padding: 2px; width: auto; }
+        .btn-reabrir-mini { background: #ff9800; color: white; border: none; padding: 6px 10px; font-size: 0.75em; border-radius: 4px; cursor: pointer; margin-left: 10px; width: auto; text-transform: uppercase; }
+
+        /* RESUMEN Y PAGO */
+        .caja-amarilla-resumen { background: #fff9c4; padding: 12px; display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 8px; border-radius: 8px; border: 1px solid #e0e0e0;}
+        .liq-box-blue { border: 2px solid #2196f3; background: #e3f2fd; padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; margin-top: 10px; font-weight: bold; }
+        .liq-box-yellow { background: #ffeb3b; padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; font-weight: 900; font-size: 1.2em; border: 2px solid #333; }
+
+        /* TABLAS */
+        .table-container { overflow-x: auto; margin-top: 15px; border-radius: 8px; }
+        .tabla-historial { width: 100%; border-collapse: collapse; background: white; min-width: 400px; font-size: 0.9em; }
+        .tabla-historial th { background: #f8f9fa; padding: 12px; text-align: left; border-bottom: 2px solid var(--primary-light); color: var(--primary-dark);}
+        .tabla-historial td { padding: 12px; border-bottom: 1px solid #eee; vertical-align: middle;}
+        .separador-grupo { background-color: #333 !important; color: white !important; font-weight: bold; padding: 10px !important; }
+
+        /* CAJAS RESUMEN FINAL */
+        .grid-resumen-final { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px;}
+        .caja-resumen-final { background: #fff; padding: 15px; border-radius: 8px; border: 2px solid #ff9800; text-align: center; }
+        .caja-resumen-final span { font-size: 1.3em; font-weight: 900; display: block; color: #333; margin-top: 5px;}
+
+        /* MODALES */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 15px; }
+        #customModalOverlay { z-index: 2000; } 
+        .modal-box { background: white; padding: 25px; border-radius: 15px; width: 100%; max-width: 450px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .modal-box p { font-size: 1.1em; margin-bottom: 15px; color: #333; font-weight: bold; }
+        .modal-buttons { display: flex; gap: 10px; justify-content: center; }
+        .modal-buttons button { margin: 0; flex: 1; }
+        
+        .sesion-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; margin-bottom: 8px; border: 1px solid #ccc; border-radius: 8px; }
+        .sesion-item.activa { background-color: var(--primary-light); border-color: var(--primary-dark); }
+        .sesion-nombre { flex: 1; text-align: left; font-weight: bold; cursor: pointer; font-size: 1.1em; }
+        .sesion-actions button { width: auto; padding: 8px 12px; margin: 0 2px; border-radius: 6px; }
+
+        @media print { .tab-bar, .header-app, button, .column:first-child, .modal-overlay { display: none !important; } body {background: white;} .container{padding:0;} .column{box-shadow:none; border:1px solid #ccc;}}
     </style>
 </head>
 <body>
 
 <div class="header-app">
-    <input type="text" id="docTitle" placeholder="NOMBRE DEL DOCUMENTO / CLIENTE..." oninput="guardarActual()">
-    <div class="reloj-header" id="reloj">Cargando...</div>
+    <div class="session-title">📁 SESIÓN ACTUAL: <span id="displayNombreSesion">Cargando...</span></div>
+    <div class="header-input-row">
+        <input type="text" id="docTitle" placeholder="CLIENTE / DOCUMENTO..." oninput="guardarActual()">
+        <button class="btn-cambiar-sesion" onclick="abrirMenuSesiones()">🔄 GESTOR DE SESIONES</button>
+    </div>
 </div>
 
 <div id="tabBar" class="tab-bar"></div>
@@ -100,144 +196,139 @@
     <div class="container">
         <div class="column">
             <h3>REGISTRO</h3>
+            <div id="avisoEdicion" style="display:none; background: #fff3e0; border: 1px solid #ffe0b2; padding: 8px; border-radius: 5px; margin-bottom: 10px; font-size: 0.85em; color: #e65100; font-weight: bold; text-align: center;">
+                ⚠️ EDITANDO GRUPO <span id="numEdicion"></span>
+            </div>
             
-            <div id="avisoEdicion" class="modo-edicion-aviso" style="display:none;">⚠️ EDITANDO GRUPO <span id="numEdicion"></span></div>
-            
-            <label>JABAS POR DEFECTO:</label>
-            <input type="number" id="jabasDefecto" value="5" onfocus="this.select()" oninput="guardarActual()" inputmode="numeric">
-
-            <label>DESCRIPCIÓN (N° JABAS):</label>
-            <input type="text" id="inputDesc" placeholder="Vacío = usa jabas por defecto" onfocus="this.select()" oninput="guardarActual()">
+            <div style="display: flex; gap: 10px;">
+                <div style="flex: 1;">
+                    <label>JABAS DEFECTO:</label>
+                    <input type="number" id="jabasDefecto" value="5" onfocus="this.select()" oninput="guardarActual()" inputmode="numeric">
+                </div>
+                <div style="flex: 2;">
+                    <label>DESC. (JABAS):</label>
+                    <input type="text" id="inputDesc" placeholder="Vacío = usa defecto" onfocus="this.select()" oninput="guardarActual()">
+                </div>
+            </div>
             
             <label>PESO (kg):</label>
-            <input type="number" id="inputPeso" placeholder="0.00" step="0.01" onfocus="this.select()" oninput="guardarActual()" inputmode="decimal">
+            <input type="number" id="inputPeso" placeholder="0.00" step="0.01" onfocus="this.select()" oninput="guardarActual()" inputmode="decimal" style="font-size: 1.5em; height: 60px; text-align: center; border-color: var(--primary-dark);">
             
-            <button onclick="agregarPeso()">AGREGAR DATO (Enter)</button>
+            <button onclick="agregarPeso()" style="background: var(--primary-dark); height: 60px; font-size: 1.2em;">+ AGREGAR PESO</button>
             <button class="btn-cerrar" id="btnCerrarGrupo" onclick="manejarCierreGrupo()">ARCHIVAR / NUEVO GRUPO</button>
-            <p style="font-size: 0.8em; font-weight: bold;">JABAS: <span id="contador">0</span>/10</p>
-            <button class="btn-pdf" onclick="window.print()">🖨️ IMPRIMIR / PDF</button>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                <span style="font-weight: bold; color: #555;">Items: <span id="contador">0</span>/10</span>
+                <button class="btn-pdf" onclick="window.print()" style="width: auto; padding: 10px 20px; margin: 0;">🖨️ PDF</button>
+            </div>
         </div>
 
         <div class="column">
             <h3>RESUMEN PESOS</h3>
-            <div id="listaPesosDetalle" style="margin-bottom: 15px;"></div>
+            <div id="listaPesosDetalle" style="margin-bottom: 15px; border-bottom: 2px solid #eee; padding-bottom: 10px;"></div>
             
             <div class="caja-amarilla-resumen"><span>PB (Peso Bruto):</span><span id="pb">0.00</span></div>
             <div class="caja-amarilla-resumen"><span>TARA TOTAL:</span><span id="taraTotalDisplay">0.00</span></div>
-            <div class="caja-amarilla-resumen"><span>PN (Peso Neto):</span><span id="pn">0.00</span></div>
+            <div class="caja-amarilla-resumen" style="background: var(--primary-light); border-color: var(--primary-dark);"><span>PN (Peso Neto):</span><span id="pn">0.00</span></div>
         </div>
 
         <div class="column">
             <h3>LIQUIDACIÓN</h3>
-            <label>JABAS BRUTAS:</label>
-            <input type="number" id="manualJabas" value="0" readonly style="background-color: #e9e9e9; border: 1.5px solid #000; font-weight: bold;">
-            
-            <label>TARA:</label><input type="number" id="manualTara" value="1.8" step="0.1" oninput="calcularTodo()" inputmode="decimal">
-            <label>DIVISOR:</label><input type="number" id="divisorJaba" value="20" oninput="calcularTodo()" inputmode="numeric">
-            <label>S/ * KILO:</label><input type="number" id="precioKilo" value="0.00" step="0.01" oninput="calcularTodo()" inputmode="decimal">
-            
-            <label>S/ * JABA:</label>
-            <input type="number" id="precioJabaInfo" value="0.00" readonly style="background-color: #e9e9e9; border: 1.5px solid #000; font-weight: bold;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div><label>JABAS BRUTAS:</label><input type="number" id="manualJabas" value="0" readonly style="background-color: #e9e9e9; font-weight: bold;"></div>
+                <div><label>TARA:</label><input type="number" id="manualTara" value="1.8" step="0.1" oninput="calcularTodo()" inputmode="decimal"></div>
+                <div><label>DIVISOR:</label><input type="number" id="divisorJaba" value="20" oninput="calcularTodo()" inputmode="numeric"></div>
+                <div><label>S/ * KILO:</label><input type="number" id="precioKilo" value="0.00" step="0.01" oninput="calcularTodo()" inputmode="decimal"></div>
+            </div>
+            <div><label>S/ * JABA (Info):</label><input type="number" id="precioJabaInfo" value="0.00" readonly style="background-color: #e9e9e9; font-weight: bold;"></div>
             
             <div class="liq-box-blue"><span>JABAS NETAS:</span><span id="jabasNetas">0.00</span></div>
             <div class="liq-box-yellow"><span>PAGO TOTAL:</span><span id="pagoFinal">S/ 0.00</span></div>
         </div>
     </div>
     
-    <div class="column" style="margin-top:20px; width: 100%; box-sizing: border-box; min-height: auto;">
-        <h3>HISTORIAL DE PESOS</h3>
-        <table class="tabla-historial">
-            <thead>
-                <tr><th style="width: 50px;">N°</th><th>DETALLE / JABAS</th><th style="width: 150px;">PESO (kg)</th><th style="width: 60px; text-align: center;">X</th></tr>
-            </thead>
-            <tbody id="cuerpoHistorial"></tbody>
-        </table>
+    <div class="container" style="padding-top: 0;">
+        <div class="column">
+            <h3>HISTORIAL DE PESOS</h3>
+            <div class="table-container">
+                <table class="tabla-historial">
+                    <thead>
+                        <tr><th style="width: 40px;">N°</th><th>DETALLE / JABAS</th><th>PESO (kg)</th><th style="width: 50px; text-align: center;">X</th></tr>
+                    </thead>
+                    <tbody id="cuerpoHistorial"></tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
 
-<div id="vistaResumen" style="display:none; padding:20px;">
+<div id="vistaResumen" style="display:none; padding:15px; max-width: 1200px; margin: 0 auto;">
     <div class="grid-resumen-final">
         <div class="caja-resumen-final">PESO BRUTO TOTAL<span id="resGlobalPB">0.00</span></div>
-        <div class="caja-resumen-final">JABAS BRUTAS TOTALES<span id="resGlobalJabas">0</span></div>
+        <div class="caja-resumen-final">JABAS BRUTAS<span id="resGlobalJabas">0</span></div>
         <div class="caja-resumen-final">TARA TOTAL<span id="resGlobalTara">0.00</span></div>
         <div class="caja-resumen-final">PESO NETO TOTAL<span id="resGlobalPN">0.00</span></div>
-        <div class="caja-resumen-final">JABAS NETAS TOTALES<span id="resGlobalJabasNetas">0.00</span></div>
+        <div class="caja-resumen-final">JABAS NETAS<span id="resGlobalJabasNetas">0.00</span></div>
         <div class="caja-resumen-final" style="border-color:#2d5a27; background:#e8f5e9;">PAGO TOTAL<span id="resGlobalPago" style="color:#2d5a27;">S/ 0.00</span></div>
     </div>
     
-    <table class="resumen-tabla">
-        <thead>
-            <tr>
-                <th>LOTE</th>
-                <th>CLIENTE</th>
-                <th>P. BRUTO</th>
-                <th>J. BRUTAS</th>
-                <th>TARA TOTAL</th>
-                <th>P. NETO</th>
-                <th>J. NETAS</th>
-                <th>PAGOS INDIVIDUALES</th>
-            </tr>
-        </thead>
-        <tbody id="resumenBody"></tbody>
-    </table>
-
-    <div style="margin-top:20px; display:flex; gap:10px;">
-        <button class="btn-pdf" style="flex:1;" onclick="window.print()">🖨️ IMPRIMIR RESUMEN FINAL / PDF</button>
-        <button class="btn-limpiar" style="flex:1;" onclick="limpiarTodoCompleto()">🗑️ BORRAR TODO E INICIAR NUEVO PESAJE</button>
-    </div>
-
-    <div class="btn-historial-backup" style="margin-top:10px; display:flex; gap:10px;">
-        <button style="flex:1; background-color: #0288d1; color: white;" onclick="exportarBackup()">💾 EXPORTAR BACKUP (JSON)</button>
-        <button style="flex:1; background-color: #00796b; color: white;" onclick="document.getElementById('fileImport').click()">📂 IMPORTAR BACKUP</button>
-        <input type="file" id="fileImport" style="display:none;" accept=".json" onchange="importarBackup(event)">
-    </div>
-    
-    <div class="btn-historial-backup" style="margin-top:10px; display:flex; gap:10px;">
-        <button style="flex:1; background-color: #f57c00; color: white;" onclick="guardarSesion()">📁 GUARDAR ESTE PESAJE EN EL HISTORIAL Y LIMPIAR</button>
-    </div>
-
-    <div id="seccionHistorialSesiones" style="margin-top:40px;">
-        <h3>HISTORIAL DE SESIONES PASADAS</h3>
-        <table class="resumen-tabla">
+    <div class="table-container">
+        <table class="tabla-historial">
             <thead>
                 <tr>
-                    <th>FECHA / HORA</th>
-                    <th>LOTES ACTIVOS</th>
-                    <th>P. BRUTO GLOBAL</th>
-                    <th>P. NETO GLOBAL</th>
-                    <th>PAGO TOTAL GLOBAL</th>
+                    <th>LOTE</th>
+                    <th>CLIENTE</th>
+                    <th>P.BTO</th>
+                    <th>J.BTS</th>
+                    <th>TARA</th>
+                    <th>P.NET</th>
+                    <th>J.NET</th>
+                    <th>S/. IND.</th>
                 </tr>
             </thead>
-            <tbody id="historialSesionesBody"></tbody>
+            <tbody id="resumenBody"></tbody>
         </table>
+    </div>
+
+    <div style="margin-top:20px; display:flex; gap:10px; flex-direction: column;">
+        <button class="btn-pdf" onclick="window.print()">🖨️ IMPRIMIR RESUMEN FINAL / PDF</button>
+        <button class="btn-limpiar" onclick="limpiarTodoCompleto()">🗑️ BORRAR ESTA SESIÓN COMPLETA</button>
     </div>
 </div>
 
 <div id="customModalOverlay" class="modal-overlay">
     <div class="modal-box">
         <p id="customModalTitle"></p>
-        <input type="text" id="customModalInput" autocomplete="off">
+        <input type="text" id="customModalInput" autocomplete="off" style="font-size: 1.2em;">
         <div class="modal-buttons">
-            <button id="customModalCancel" class="modal-btn-cancel">CANCELAR</button>
-            <button id="customModalOk" class="modal-btn-ok">ACEPTAR</button>
+            <button id="customModalCancel" style="background: #e53935;">CANCELAR</button>
+            <button id="customModalOk" style="background: #4CAF50;">ACEPTAR</button>
         </div>
     </div>
 </div>
 
+<div id="modalSesionesOverlay" class="modal-overlay">
+    <div class="modal-box" style="max-width: 500px;">
+        <h3 style="color:var(--primary-dark); margin-bottom: 20px;">GESTOR DE SESIONES (MAX 5)</h3>
+        <div id="listaSesionesHtml" style="margin-bottom: 20px; max-height: 300px; overflow-y: auto;"></div>
+        <button id="btnCrearSesionMenu" onclick="crearNuevaSesion()" style="background-color: #2196f3; margin-bottom: 15px;">➕ CREAR NUEVA SESIÓN</button>
+        <button style="background: #666;" onclick="cerrarMenuSesiones()">CERRAR GESTOR</button>
+    </div>
+</div>
+
 <script>
-    let lotes = [];
+    // --- LÓGICA DE DATOS INTACTA ---
+    let appData = { sesiones: [], activaIdx: 0 };
+    let lotes = []; 
     let loteActivoId = 0;
     let isResumen = false;
-
-    // Variables de trabajo del lote activo
     let grupos = [[]];
     let indiceEdicion = 0;
 
-    // Funciones del Modal Custom Asíncrono
+    // --- FUNCIONES DE MODALES RESTAURADAS ---
     function showModal(type, msg, defValue = '') {
         return new Promise(resolve => {
             const overlay = document.getElementById('customModalOverlay');
-            const box = document.getElementById('customModalBox');
             const title = document.getElementById('customModalTitle');
             const input = document.getElementById('customModalInput');
             const btnCancel = document.getElementById('customModalCancel');
@@ -245,14 +336,12 @@
 
             title.innerText = msg;
             input.style.display = type === 'prompt' ? 'block' : 'none';
-            if(type === 'prompt') {
-                input.value = defValue;
-            }
+            if(type === 'prompt') input.value = defValue;
+            
             btnCancel.style.display = (type === 'confirm' || type === 'prompt') ? 'inline-block' : 'none';
-
             overlay.style.display = 'flex';
-
-            if(type === 'prompt') input.focus();
+            
+            if(type === 'prompt') setTimeout(() => input.focus(), 100); 
 
             const cleanup = () => {
                 overlay.style.display = 'none';
@@ -261,20 +350,9 @@
                 input.onkeypress = null;
             };
 
-            btnOk.onclick = () => {
-                cleanup();
-                if(type === 'prompt') resolve(input.value);
-                else resolve(true);
-            };
-
-            btnCancel.onclick = () => {
-                cleanup();
-                resolve(type === 'prompt' ? null : false);
-            };
-
-            input.onkeypress = (e) => {
-                if(e.key === 'Enter') btnOk.onclick();
-            };
+            btnOk.onclick = () => { cleanup(); resolve(type === 'prompt' ? input.value : true); };
+            btnCancel.onclick = () => { cleanup(); resolve(type === 'prompt' ? null : false); };
+            input.onkeypress = (e) => { if(e.key === 'Enter') btnOk.onclick(); };
         });
     }
     
@@ -282,33 +360,127 @@
     async function customConfirm(msg) { return await showModal('confirm', msg); }
     async function customPrompt(msg, defVal) { return await showModal('prompt', msg, defVal); }
 
+    // --- INICIALIZACIÓN ---
     function crearLoteNuevo() {
-        return {
-            docTitle: "", grupos: [[]], indiceEdicion: 0,
-            manualTara: 1.8, precioKilo: 0.00, divisorJaba: 20, jabasDefecto: 5
-        };
+        return { docTitle: "", grupos: [[]], indiceEdicion: 0, manualTara: 1.8, precioKilo: 0.00, divisorJaba: 20, jabasDefecto: 5 };
+    }
+    
+    function crearSesionNueva(nombre) {
+        return { id: Date.now(), nombre: nombre, lotes: [crearLoteNuevo()] };
     }
 
     window.onload = function() {
         try {
-            const saved = JSON.parse(localStorage.getItem('pesaje_multi_kevo_v3'));
-            lotes = saved || [crearLoteNuevo()];
+            const saved = JSON.parse(localStorage.getItem('pesaje_multisesion_kevo'));
+            if (saved && saved.sesiones && saved.sesiones.length > 0) {
+                appData = saved;
+            } else {
+                appData.sesiones.push(crearSesionNueva("Sesión 1"));
+                appData.activaIdx = 0;
+            }
         } catch(e) { 
-            lotes = [crearLoteNuevo()];
+            appData = { sesiones: [crearSesionNueva("Sesión 1")], activaIdx: 0 };
         }
-        renderTabs();
-        cargarLote(0);
-        setInterval(actualizarReloj, 1000);
+        
+        if(appData.activaIdx >= appData.sesiones.length) appData.activaIdx = 0;
+        cargarSesionLogica(appData.activaIdx);
     };
-
-    function actualizarReloj() {
-        const n = new Date();
-        document.getElementById('reloj').innerText = `FECHA: ${n.toLocaleDateString()} | HORA: ${n.toLocaleTimeString()}`;
-    }
 
     document.getElementById('inputDesc').addEventListener('keypress', (e) => { if(e.key === 'Enter') { e.preventDefault(); agregarPeso(); } });
     document.getElementById('inputPeso').addEventListener('keypress', (e) => { if(e.key === 'Enter') { e.preventDefault(); agregarPeso(); } });
 
+    // --- GESTIÓN DE SESIONES ---
+    function abrirMenuSesiones() {
+        renderizarListaSesiones();
+        document.getElementById('modalSesionesOverlay').style.display = 'flex';
+    }
+
+    function cerrarMenuSesiones() {
+        document.getElementById('modalSesionesOverlay').style.display = 'none';
+    }
+
+    function renderizarListaSesiones() {
+        const div = document.getElementById('listaSesionesHtml');
+        let html = '';
+        appData.sesiones.forEach((s, idx) => {
+            const isActiva = (idx === appData.activaIdx);
+            html += `
+            <div class="sesion-item ${isActiva ? 'activa' : ''}">
+                <div class="sesion-nombre" onclick="cambiarASesion(${idx})">
+                    ${isActiva ? '🟢' : '⚪'} ${s.nombre}
+                </div>
+                <div class="sesion-actions">
+                    <button style="background-color: #ff9800; color: white;" onclick="renombrarSesion(${idx})">✏️</button>
+                    ${appData.sesiones.length > 1 ? `<button style="background-color: #e53935; color: white;" onclick="eliminarSesion(${idx})">🗑️</button>` : ''}
+                </div>
+            </div>`;
+        });
+        div.innerHTML = html;
+        document.getElementById('btnCrearSesionMenu').style.display = appData.sesiones.length >= 5 ? 'none' : 'block';
+    }
+
+    async function crearNuevaSesion() {
+        if(appData.sesiones.length >= 5) {
+            await customAlert("Has alcanzado el límite máximo de 5 sesiones.");
+            return;
+        }
+        let nombre = await customPrompt("Ingresa el nombre del producto o sesión:", "");
+        if(nombre) {
+            guardarActual(); 
+            appData.sesiones.push(crearSesionNueva(nombre.trim()));
+            appData.activaIdx = appData.sesiones.length - 1;
+            guardarTodoAppData();
+            cargarSesionLogica(appData.activaIdx);
+            cerrarMenuSesiones();
+        }
+    }
+
+    async function renombrarSesion(idx) {
+        let nuevo = await customPrompt("Editar nombre de sesión:", appData.sesiones[idx].nombre);
+        if(nuevo && nuevo.trim() !== "") {
+            appData.sesiones[idx].nombre = nuevo.trim();
+            guardarTodoAppData();
+            renderizarListaSesiones();
+            if(idx === appData.activaIdx) document.getElementById('displayNombreSesion').innerText = nuevo.trim();
+        }
+    }
+
+    async function eliminarSesion(idx) {
+        if(await customConfirm(`¿Seguro que deseas ELIMINAR la sesión "${appData.sesiones[idx].nombre}"?`)) {
+            appData.sesiones.splice(idx, 1);
+            if(appData.activaIdx >= appData.sesiones.length) {
+                appData.activaIdx = Math.max(0, appData.sesiones.length - 1);
+            } else if (appData.activaIdx > idx) {
+                appData.activaIdx--; 
+            }
+            guardarTodoAppData();
+            cargarSesionLogica(appData.activaIdx);
+            renderizarListaSesiones();
+        }
+    }
+
+    function cambiarASesion(idx) {
+        if(idx === appData.activaIdx) return;
+        guardarActual(); 
+        appData.activaIdx = idx;
+        guardarTodoAppData();
+        cargarSesionLogica(idx);
+        cerrarMenuSesiones();
+    }
+
+    function cargarSesionLogica(idx) {
+        document.getElementById('displayNombreSesion').innerText = appData.sesiones[idx].nombre;
+        lotes = appData.sesiones[idx].lotes;
+        loteActivoId = 0;
+        isResumen = false;
+        switchLote(0, true); 
+    }
+
+    function guardarTodoAppData() {
+        localStorage.setItem('pesaje_multisesion_kevo', JSON.stringify(appData));
+    }
+
+    // --- LÓGICA DE LOTES ---
     function renderTabs() {
         const bar = document.getElementById('tabBar');
         let html = '';
@@ -316,7 +488,7 @@
             html += `<button class="tab-btn ${(!isResumen && loteActivoId === i) ? 'active' : ''}" onclick="switchLote(${i})">Lote ${i+1}</button>`;
         });
         if(lotes.length < 10) html += `<button class="tab-btn tab-add" onclick="agregarLote()">+ Añadir Lote</button>`;
-        html += `<button class="tab-btn tab-resumen ${(isResumen) ? 'active' : ''}" onclick="switchLote('resumen')">📊 Resumen Final</button>`;
+        html += `<button class="tab-btn tab-resumen ${(isResumen) ? 'active' : ''}" onclick="switchLote('resumen')">📊 FINAL</button>`;
         bar.innerHTML = html;
     }
 
@@ -327,15 +499,15 @@
         switchLote(lotes.length - 1);
     }
 
-    function switchLote(index) {
-        if(!isResumen) guardarActual();
+    function switchLote(index, omitirGuardado = false) {
+        if(!isResumen && !omitirGuardado) guardarActual();
+        
         if(index === 'resumen') {
             isResumen = true;
             document.getElementById('vistaPrincipal').style.display = 'none';
             document.getElementById('vistaResumen').style.display = 'block';
             document.getElementById('docTitle').style.display = 'none'; 
             generarResumenGlobal();
-            cargarHistorialSesiones();
         } else {
             isResumen = false;
             loteActivoId = index;
@@ -348,6 +520,7 @@
     }
 
     function cargarLote(idx) {
+        if(!lotes[idx]) return;
         const l = lotes[idx];
         grupos = JSON.parse(JSON.stringify(l.grupos));
         indiceEdicion = l.indiceEdicion;
@@ -356,11 +529,15 @@
         document.getElementById('divisorJaba').value = l.divisorJaba;
         document.getElementById('precioKilo').value = l.precioKilo;
         document.getElementById('jabasDefecto').value = l.jabasDefecto !== undefined ? l.jabasDefecto : 5;
+        
+        document.getElementById('inputPeso').value = '';
+        document.getElementById('inputDesc').value = '';
+        
         renderizar();
     }
 
     function guardarActual() {
-        if(isResumen) return;
+        if(isResumen || !lotes[loteActivoId]) return;
         lotes[loteActivoId] = {
             docTitle: document.getElementById('docTitle').value,
             grupos: JSON.parse(JSON.stringify(grupos)),
@@ -370,7 +547,8 @@
             precioKilo: document.getElementById('precioKilo').value,
             jabasDefecto: document.getElementById('jabasDefecto').value
         };
-        localStorage.setItem('pesaje_multi_kevo_v3', JSON.stringify(lotes));
+        appData.sesiones[appData.activaIdx].lotes = lotes;
+        guardarTodoAppData();
     }
 
     function agregarPeso() {
@@ -383,19 +561,12 @@
         let defJabas = document.getElementById('jabasDefecto').value || "5";
         let d = dInput.value.trim();
         
-        if (d === "") {
-            d = defJabas + " jabas";
-        } else if (!isNaN(d)) {
-            d = d + " jabas";
-        }
+        if (d === "") d = defJabas + " jabas";
+        else if (!isNaN(d)) d = d + " jabas";
 
         grupos[indiceEdicion].push({ desc: d, valor: p });
-        
-        // Limpiamos los campos
         pInput.value = ""; 
         dInput.value = ""; 
-        
-        // ¡Aquí está la magia! El cursor vuelve automáticamente a la casilla de peso
         pInput.focus();
 
         if (grupos[indiceEdicion].length >= 10) {
@@ -444,7 +615,7 @@
     }
 
     async function borrarFila(gIdx, iIdx) { 
-        if (await customConfirm("¿Eliminar?")) { 
+        if (await customConfirm("¿Eliminar este peso?")) { 
             grupos[gIdx].splice(iIdx, 1); 
             renderizar(); 
             guardarActual();
@@ -475,7 +646,7 @@
                     <tr>
                         <td colspan="4" class="separador-grupo">
                             GRUPO ${gIdx + 1} - SUBTOTAL: ${sumaG.toFixed(2)}
-                            ${esActivo ? ' <small>(EDITANDO)</small>' : `<button class="btn-reabrir-mini" onclick="activarEdicionGrupo(${gIdx})">🔓 Reabrir</button>`}
+                            ${esActivo ? ' <small style="color:orange;">(EDITANDO)</small>' : `<button class="btn-reabrir-mini" onclick="activarEdicionGrupo(${gIdx})">🔓 REABRIR</button>`}
                         </td>
                     </tr>`;
             }
@@ -502,7 +673,7 @@
             let sG = 0;
             g.forEach(i => { sG += i.valor; let m = i.desc.match(/\d+/); totalJ += m ? parseFloat(m[0]) : 5; });
             totalP += sG;
-            if(sG > 0) pesosHTML += `<div class="resumen-item"><span>Peso ${idx+1}</span> <b>${sG.toFixed(2)}</b></div>`;
+            if(sG > 0) pesosHTML += `<div style="display:flex; justify-content:space-between; padding:4px 0;"><span>Subtotal G${idx+1}</span> <b>${sG.toFixed(2)}</b></div>`;
         });
         document.getElementById('listaPesosDetalle').innerHTML = pesosHTML;
         document.getElementById('pb').innerText = totalP.toFixed(2);
@@ -515,10 +686,7 @@
         document.getElementById('taraTotalDisplay').innerText = taraTotal.toFixed(2);
         document.getElementById('pn').innerText = pn.toFixed(2);
         document.getElementById('jabasNetas').innerText = (pn / parseFloat(document.getElementById('divisorJaba').value || 20)).toFixed(2);
-        
-        // Aquí se automatiza el S/ * JABA (Info) multiplicando S/ * KILO por 20
         document.getElementById('precioJabaInfo').value = (precioK * 20).toFixed(2);
-        
         document.getElementById('pagoFinal').innerText = "S/ " + (pn * precioK).toLocaleString('en-US', {minimumFractionDigits: 2});
     }
 
@@ -563,96 +731,10 @@
     }
 
     async function limpiarTodoCompleto() {
-        if(await customConfirm("¿Seguro que quieres borrar los 10 lotes y reiniciar todo el sistema? (Esto NO se guarda en el historial)")) {
-            localStorage.removeItem('pesaje_multi_kevo_v3');
-            location.reload();
-        }
-    }
-
-    // BACKUPS MANUALES
-    async function exportarBackup() {
-        const data = localStorage.getItem('pesaje_multi_kevo_v3');
-        if(!data) { await customAlert("No hay datos actuales para exportar."); return; }
-        const blob = new Blob([data], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Backup_Pesaje_${new Date().toLocaleDateString().replace(/\//g,'-')}.json`;
-        a.click();
-    }
-
-    function importarBackup(event) {
-        const file = event.target.files[0];
-        if(!file) return;
-        const reader = new FileReader();
-        reader.onload = async function(e) {
-            try {
-                const data = JSON.parse(e.target.result);
-                if(Array.isArray(data)) {
-                    localStorage.setItem('pesaje_multi_kevo_v3', JSON.stringify(data));
-                    await customAlert("Backup cargado con éxito.");
-                    location.reload();
-                } else {
-                    await customAlert("El archivo JSON no tiene el formato correcto de lotes.");
-                }
-            } catch(err) {
-                await customAlert("Error al leer el archivo. Asegúrate de que sea el backup original.");
-            }
-        };
-        reader.readAsText(file);
-    }
-
-    // HISTORIAL DE SESIONES PASADAS
-    function cargarHistorialSesiones() {
-        let historial = JSON.parse(localStorage.getItem('historial_sesiones_kevo')) || [];
-        let html = '';
-        historial.forEach(h => {
-            html += `<tr>
-                <td>${h.fecha}</td>
-                <td>${h.lotesActivos}</td>
-                <td>${h.pesoBruto.toFixed(2)} kg</td>
-                <td>${h.pesoNeto.toFixed(2)} kg</td>
-                <td><b>S/ ${h.pagoTotal.toLocaleString('en-US', {minimumFractionDigits:2})}</b></td>
-            </tr>`;
-        });
-        const tbody = document.getElementById('historialSesionesBody');
-        if(tbody) {
-            tbody.innerHTML = html.length > 0 ? html : `<tr><td colspan="5">No hay historial de sesiones pasadas guardado.</td></tr>`;
-        }
-    }
-
-    async function guardarSesion() {
-        if(await customConfirm("¿Estás seguro de GUARDAR esta sesión en el historial y REINICIAR el pesaje actual para empezar de cero?")) {
-            let gPB = 0, gPN = 0, gPago = 0, numLotesActivos = 0;
-            lotes.forEach(l => {
-                let lPB = 0, lJB = 0;
-                l.grupos.forEach(g => {
-                    g.forEach(it => { lPB += it.valor; let m = it.desc.match(/\d+/); lJB += m ? parseFloat(m[0]) : 5; });
-                });
-                if(lPB > 0) {
-                    numLotesActivos++;
-                    let lTara = lJB * parseFloat(l.manualTara || 0);
-                    let lPN = lPB - lTara;
-                    gPB += lPB;
-                    gPN += lPN;
-                    gPago += lPN * parseFloat(l.precioKilo || 0);
-                }
-            });
-
-            if(numLotesActivos > 0) {
-                let historial = JSON.parse(localStorage.getItem('historial_sesiones_kevo')) || [];
-                historial.unshift({
-                    fecha: new Date().toLocaleString(),
-                    lotesActivos: numLotesActivos,
-                    pesoBruto: gPB,
-                    pesoNeto: gPN,
-                    pagoTotal: gPago
-                });
-                localStorage.setItem('historial_sesiones_kevo', JSON.stringify(historial));
-            }
-            
-            localStorage.removeItem('pesaje_multi_kevo_v3');
-            location.reload();
+        if(await customConfirm("¿Seguro que quieres borrar la SESIÓN ACTUAL y todos sus lotes?")) {
+            appData.sesiones[appData.activaIdx].lotes = [crearLoteNuevo()];
+            guardarTodoAppData();
+            cargarSesionLogica(appData.activaIdx);
         }
     }
 </script>
