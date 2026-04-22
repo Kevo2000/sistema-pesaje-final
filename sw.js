@@ -1,29 +1,46 @@
-const CACHE_NAME = 'pesaje-kevo-v2'; // <-- Cambiamos a v2
+const CACHE_NAME = 'pesaje-kevo-v3'; // Subimos la versión a v3
 const urlsToCache = [
-  '/',              // <-- ¡ESTE ES EL SALVAVIDAS! Guarda la ruta principal
+  '/',
   '/index.html',
   '/manifest.json',
   '/icono-192x192.png',
   '/icono-512x512.png'
 ];
 
-// Instala el Service Worker y guarda los archivos en caché
+// Instala y fuerza a que tome el control INMEDIATAMENTE
 self.addEventListener('install', event => {
+  self.skipWaiting(); 
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => cache.addAll(urlsToCache))
   );
 });
 
-// Intercepta las peticiones para que funcione sin internet
+// Activa y ELIMINA cualquier rastro de las versiones viejas (v1 y v2)
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cache => {
+          if (cache !== CACHE_NAME) {
+            console.log('Borrando caché antiguo:', cache);
+            return caches.delete(cache);
+          }
+        })
+      );
+    }).then(() => self.clients.claim())
+  );
+});
+
+// Intercepta las peticiones (offline mode)
 self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        if (response) {
-          return response; // Devuelve la versión guardada si no hay internet
-        }
-        return fetch(event.request);
+        return response || fetch(event.request);
+      }).catch(() => {
+        // Redundancia: si falla, intenta forzar la pantalla principal
+        return caches.match('/');
       })
   );
 });
