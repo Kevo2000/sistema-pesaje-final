@@ -1,9 +1,10 @@
-const CACHE_NAME = 'pesaje-kevo-v1';
+const CACHE_NAME = 'pesaje-kevo-v2'; // <-- Cambiamos a v2
 const urlsToCache = [
-  './index.html',  // <-- ¡AQUÍ ESTABA EL ERROR! 
-  './manifest.json',
-  './icono-192x192.png',
-  './icono-512x512.png'
+  '/',              // <-- ¡ESTE ES EL SALVAVIDAS! Guarda la ruta principal
+  '/index.html',
+  '/manifest.json',
+  '/icono-192x192.png',
+  '/icono-512x512.png'
 ];
 
 // Instala el Service Worker y guarda los archivos en caché
